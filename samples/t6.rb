@@ -1,4 +1,4 @@
-require_relative "../ext/mpipe"
+require "mpipe"
 
 MPipe.init
 rank = MPipe::Comm.rank
@@ -11,7 +11,7 @@ if rank == 0
 
   pipes.each do |r|
     p r.read(6,"")
-    p r.read
+    p r.read(6)
   end
 
 else

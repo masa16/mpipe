@@ -1,12 +1,12 @@
-require_relative "../ext/mpipe"
+require "mpipe"
 
 MPipe.init
 rank = MPipe::Comm.rank
 size = MPipe::Comm.size
 puts "size=%d rank=%d pid=%d" % [size,rank,Process.pid]
 
-def _read(io)
-  io.read_nonblock
+def _read(io,n)
+  io.read_nonblock(n)
 rescue IO::WaitReadable
   MPipe.select([io])
   retry
@@ -17,9 +17,8 @@ if rank == 0
   pipes = (1..size-1).map{|rank| MPipe.new(rank)}
 
   pipes.each do |x|
-    while !(s = _read(x))
+    while !(s = _read(x,12))
       puts "waiting"
-      $stdout.flush
     end
     p s
   end

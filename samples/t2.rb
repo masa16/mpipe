@@ -1,4 +1,4 @@
-require_relative "../ext/mpipe"
+require "mpipe"
 
 MPipe.init
 
@@ -14,7 +14,7 @@ if rank == 0
   while !pipes.empty?
     rsel, = MPipe.select(pipes)
     rsel.each do |r|
-      p s=r.read_nonblock
+      p s=r.read_nonblock(12, exception:false)
       if /end/ =~ s
         pipes.delete(r)
       end
@@ -23,9 +23,11 @@ if rank == 0
 
 else
 
+  mp = MPipe.new(0)
   sleep size-rank
-  message = "Hello from #{rank}"
-  MPipe.new(0).write(message)
-  MPipe.new(0).write("end")
+  mp.write("Hello from #{rank}")
+  mp.write("end")
 
 end
+
+MPipe.finalize

@@ -1,4 +1,4 @@
-require_relative "../ext/mpipe"
+require "mpipe"
 
 puts "buffer_size = %d" % MPipe.buffer_size
 MPipe.buffer_size = 2**13

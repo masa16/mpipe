@@ -1,4 +1,4 @@
-require_relative "../ext/mpipe"
+require "mpipe"
 
 MPipe.init
 rank = MPipe::Comm.rank
@@ -14,7 +14,7 @@ if rank == 0
     rsel, = MPipe.select(pipes)
     rsel.each do |r|
       #p r.read_nonblock(6,"")
-      p s = r.read_nonblock()
+      p s = r.read_nonblock(74,exception:false)
       pipes.delete(r) if /end/ =~ s
     end
   end
@@ -22,7 +22,7 @@ if rank == 0
 else
 
   sleep size-rank
-  message = "Hello from #{rank} - "*500+"end"
-  MPipe.new(0).write_nonblock(message)
+  message = "Hello from #{rank} - "*500+"hello end"
+  MPipe.new(0).write(message)
 
 end
