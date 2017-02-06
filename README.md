@@ -2,6 +2,17 @@
 
 Ruby's IO.pipe emulation over MPI
 
+[GitHub](https://github.com/masa16/mpipe) | [RubyGems](https://rubygems.org/gems/mpipe)
+
+## Requirement
+
+Message Passing Interface (MPI) framework such as 
+[OpenMPI](https://www.open-mpi.org/), [MPICH](https://www.mpich.org/), etc.
+
+Commands:
+* mpicc - Compiler for MPI programs.
+* mpirun - Command to run MPI program.
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -66,11 +77,11 @@ MPipe::Comm.size -- calls MPI_Comm_size(), return the size of this environment.
 
 mp = MPipe.new(rank) -- returns pipe to MPI process with rank.
 mp.write(str) -- emulate IO#write.
-mp.read(maxlen,outbuf) -- emulate IO#read.
-mp.read_nonblock(maxlen,outbuf) -- emulate IO#read_nonblock.
+mp.read(length,outbuf=nil) -- emulate IO#read.
+mp.read_nonblock(maxlen,outbuf=nil,excepton:true) -- emulate IO#read_nonblock.
 MPipe.select(array_of_mpipe) -- emulate IO.select
 ```
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/Masahiro TANAKA/mpipe.
+Bug reports and pull requests are welcome on GitHub at https://github.com/masa16/mpipe.
