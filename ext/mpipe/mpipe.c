@@ -207,7 +207,13 @@ mp_s_allocate(VALUE klass)
 static VALUE
 mp_init(struct MPipe *ptr, VALUE self, VALUE rank)
 {
+    int size;
+
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
     ptr->rank = NUM2INT(rank);
+    if (ptr->rank < 0 || ptr->rank >= size) {
+        rb_raise(rb_eArgError,"Invalid rank has value %d but must be nonnegative and less than %d\n",ptr->rank,size);
+    }
     ptr->send_buffer = malloc(mp_buffer_size);
     ptr->recv_buffer = malloc(mp_buffer_size);
     return self;
@@ -345,79 +351,104 @@ mp_write(VALUE self, VALUE str)
 }
 
 
-
-static VALUE
-mp_outbuf(char *buf, int len, VALUE outbuf)
+static int
+copy_substr(struct MPipe *ptr, int max_len, VALUE outbuf, int outbuf_pos)
 {
-    if (NIL_P(outbuf)) {
-        return rb_str_new(buf, len);
-    } else {
-	rb_str_resize(outbuf, len);
-	MEMCPY(RSTRING_PTR(outbuf), buf, char, len);
-        return outbuf;
-    }
-}
-
-static VALUE
-mp_substr(struct MPipe *ptr, VALUE maxlen, VALUE outbuf)
-{
-    int max_len;
-    int count = ptr->recv_count;
+    int len;
     char *recv_buf = ptr->recv_buffer + ptr->recv_begin;
 
-    if (!NIL_P(maxlen)) {
-        max_len = NUM2INT(maxlen);
-        if (max_len < 0) {
-            rb_raise(rb_eArgError, "negative length %d given", max_len);
-        }
-        if (max_len < count) {
-            ptr->recv_begin += max_len;
-            ptr->recv_count -= max_len;
-            return mp_outbuf(recv_buf, max_len, outbuf);
-        }
+    len = max_len - outbuf_pos;
+    if (len < ptr->recv_count) {
+        ptr->recv_begin += len;
+        ptr->recv_count -= len;
+    } else {
+        len = ptr->recv_count;
+        ptr->recv_begin = 0;
+        ptr->recv_count = 0;
     }
-    ptr->recv_begin = 0;
-    ptr->recv_count = 0;
-    return mp_outbuf(recv_buf, count, outbuf);
+    MEMCPY(RSTRING_PTR(outbuf)+outbuf_pos, recv_buf, char, len);
+    return len;
 }
 
-
+/*
+ *  call-seq:
+ *     ios.read(length [, outbuf])    -> string, outbuf, or nil
+ *
+ *  Reads <i>length</i> bytes from the I/O stream.
+ *
+ *  <i>length</i> must be a non-negative integer.
+ */
 static VALUE
 mp_read(int argc, VALUE *argv, VALUE self)
 {
     struct MPipe *ptr = MPipe(self);
     MPI_Status status;
     int istat;
-    int count;
+    int outbuf_pos = 0;
+    int max_len;
     VALUE maxlen = Qnil;
     VALUE outbuf = Qnil;
 
-    rb_scan_args(argc, argv, "02", &maxlen, &outbuf);
+    rb_scan_args(argc, argv, "11", &maxlen, &outbuf);
+
+    max_len = NUM2INT(maxlen);
+    if (max_len < 0) {
+        rb_raise(rb_eArgError, "negative length %d given", max_len);
+    }
+
+    if (NIL_P(outbuf)) {
+        outbuf = rb_str_new(0, 0);
+    }
+    rb_str_resize(outbuf, max_len);
+
+    if (ptr->recv_count == -1) { // requesting
+        istat = MPI_Wait(&ptr->recv_request, &status);
+        if (istat != MPI_SUCCESS) {
+            rb_raise(rb_eStandardError,"MPI_Wait failed with status=%d",istat);
+        }
+        MPI_Get_count(&status, MPI_CHAR, &ptr->recv_count);
+    }
 
     if (ptr->recv_count > 0) {
-        return mp_substr(ptr, maxlen, outbuf);
+        outbuf_pos += copy_substr(ptr, max_len, outbuf, outbuf_pos);
     }
-    if (ptr->recv_count == 0) {
+
+    while (outbuf_pos < max_len) {
         istat = MPI_Recv(ptr->recv_buffer, mp_buffer_size, MPI_CHAR, ptr->rank,
                          0, MPI_COMM_WORLD, &status);
         if (istat != MPI_SUCCESS) {
             rb_raise(rb_eStandardError,"MPI_recv failed with status=%d\n",istat);
         }
-    } else { // requesting
-        istat = MPI_Wait(&ptr->recv_request, &status);
-        if (istat != MPI_SUCCESS) {
-            rb_raise(rb_eStandardError,"MPI_Wait failed with status=%d",istat);
-        }
+        MPI_Get_count(&status, MPI_CHAR, &ptr->recv_count);
+
+        outbuf_pos += copy_substr(ptr, max_len, outbuf, outbuf_pos);
     }
-    MPI_Get_count(&status, MPI_CHAR, &count);
-    ptr->recv_count = count;
-    return mp_substr(ptr, maxlen, outbuf);
+
+    return outbuf;
 }
 
 
+static int
+call_test(struct MPipe *ptr)
+{
+    MPI_Status status;
+    int complete = 0;
+    int istat;
+
+    // if (ptr->recv_count == -1)
+    istat = MPI_Test(&ptr->recv_request, &complete, &status);
+    if (istat != MPI_SUCCESS) {
+        rb_raise(rb_eStandardError,"MPI_Test failed with status=%d",istat);
+    }
+    if (complete) {
+        MPI_Get_count(&status, MPI_CHAR, &ptr->recv_count);
+        return ptr->recv_count;
+    }
+    return 0;
+}
 
 static void
-request_irecv(struct MPipe *ptr)
+call_irecv(struct MPipe *ptr)
 {
     int istat;
 
@@ -439,7 +470,7 @@ buffered: recv_count=n
 
 /*
  * call-seq:
- *   mpipe.read_nonblock(integer[, outbuf [, opts]])    -> string
+ *   mpipe.read_nonblock(maxlen[, outbuf [, opts]])    -> string
  *
  * Similar to #read, but raises +EOFError+ at end of string unless the
  * +exception: false+ option is passed in.
@@ -448,39 +479,59 @@ static VALUE
 mp_read_nonblock(int argc, VALUE *argv, VALUE self)
 {
     struct MPipe *ptr = MPipe(self);
-    MPI_Status status;
-    int istat;
-    int count;
-    int complete = 0;
+    int outbuf_pos = 0;
+    int max_len;
     VALUE maxlen = Qnil;
     VALUE outbuf = Qnil;
     VALUE opts = Qnil;
-    VALUE val;
 
-    rb_scan_args(argc, argv, "02:", &maxlen, &outbuf, &opts);
+    rb_scan_args(argc, argv, "11:", &maxlen, &outbuf, &opts);
 
-    if (ptr->recv_count > 0) {
-        return mp_substr(ptr, maxlen, outbuf);
+    max_len = NUM2INT(maxlen);
+    if (max_len < 0) {
+        rb_raise(rb_eArgError, "negative length %d given", max_len);
     }
-    request_irecv(ptr);
-    istat = MPI_Test(&ptr->recv_request, &complete, &status);
-    if (istat != MPI_SUCCESS) {
-        rb_raise(rb_eStandardError,"MPI_Test failed with status=%d",istat);
+
+    if (NIL_P(outbuf)) {
+        outbuf = rb_str_new(0, 0);
     }
-    if (complete) {
-        MPI_Get_count(&status, MPI_CHAR, &count);
-        ptr->recv_count = count;
-        val = mp_substr(ptr, maxlen, outbuf);
-    } else {
-	if (!NIL_P(opts) &&
-            rb_hash_lookup2(opts, sym_exception, Qundef) == Qfalse) {
-	    return Qnil;
-        } else {
-            rb_raise(eEAGAINWaitReadable,"MPI_Irecv would block");
+    rb_str_resize(outbuf, max_len);
+
+    if (maxlen == 0) {
+        return outbuf;
+    }
+
+    if (ptr->recv_count == -1) { // requesting
+        if (call_test(ptr) == 0) {
+            if (!NIL_P(opts) && rb_hash_lookup2(opts, sym_exception, Qundef) == Qfalse) {
+                return Qnil;
+            } else {
+                rb_raise(eEAGAINWaitReadable,"MPI_Irecv would block");
+            }
         }
     }
-    return val;
+    if (ptr->recv_count > 0) {
+        outbuf_pos += copy_substr(ptr, max_len, outbuf, outbuf_pos);
+    }
+
+    while (outbuf_pos < max_len) {
+        call_irecv(ptr);
+        if (call_test(ptr) == 0) {
+            if (outbuf_pos > 0) {
+                rb_str_resize(outbuf, outbuf_pos);
+                return outbuf;
+            } else
+            if (!NIL_P(opts) && rb_hash_lookup2(opts, sym_exception, Qundef) == Qfalse) {
+                return Qnil;
+            } else {
+                rb_raise(eEAGAINWaitReadable,"MPI_Irecv would block");
+            }
+        }
+        outbuf_pos += copy_substr(ptr, max_len, outbuf, outbuf_pos);
+    }
+    return outbuf;
 }
+
 
 static VALUE
 mp_s_select(int argc, VALUE *argv, VALUE mod)
@@ -519,7 +570,7 @@ mp_s_select(int argc, VALUE *argv, VALUE mod)
     for (i=0; i < incount; i++) {
         item = RARRAY_AREF(argv[0], i);
         ptr = MPipe(item);
-        request_irecv(ptr);
+        call_irecv(ptr);
         ary_of_requests[i] = ptr->recv_request;
     }
 
