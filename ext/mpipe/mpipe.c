@@ -3,7 +3,7 @@
 //#include "ruby/encoding.h"
 #include "mpi.h"
 
-#define MPIPE_VERSION "0.1.0"
+#define MPIPE_VERSION "0.2.0"
 
 static int mp_buffer_size = 4098;
 static int mp_initialized = 0;
