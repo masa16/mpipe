@@ -2,7 +2,16 @@
 
 Ruby's IO.pipe emulation over MPI
 
+[GitHub](https://github.com/masa16/mpipe) | [RubyGems](https://rubygems.org/gems/mpipe)
+
 ## Installation
+
+Requirement: Message Passing Interface (MPI) framework such as 
+[OpenMPI](https://www.open-mpi.org/), [MPICH](https://www.mpich.org/), etc.
+
+Commands:
+* mpicc - Compiler for MPI programs.
+* mpirun - Command to run MPI program.
 
 Add this line to your application's Gemfile:
 
