@@ -84,4 +84,4 @@ MPipe.select(array_of_mpipe) -- emulate IO.select
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/Masahiro TANAKA/mpipe.
+Bug reports and pull requests are welcome on GitHub at https://github.com/masa16/mpipe.
