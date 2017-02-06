@@ -77,8 +77,8 @@ MPipe::Comm.size -- calls MPI_Comm_size(), return the size of this environment.
 
 mp = MPipe.new(rank) -- returns pipe to MPI process with rank.
 mp.write(str) -- emulate IO#write.
-mp.read(maxlen,outbuf) -- emulate IO#read.
-mp.read_nonblock(maxlen,outbuf) -- emulate IO#read_nonblock.
+mp.read(length,outbuf=nil) -- emulate IO#read.
+mp.read_nonblock(maxlen,outbuf=nil,excepton:true) -- emulate IO#read_nonblock.
 MPipe.select(array_of_mpipe) -- emulate IO.select
 ```
 
