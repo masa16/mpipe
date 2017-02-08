@@ -1,6 +1,6 @@
 # MPipe
 
-Ruby's IO.pipe emulation over MPI
+Ruby's IO.pipe emulation using MPI
 
 [GitHub](https://github.com/masa16/mpipe) | [RubyGems](https://rubygems.org/gems/mpipe)
 
