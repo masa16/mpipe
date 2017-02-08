@@ -17,8 +17,8 @@ Gem::Specification.new do |spec|
   spec.version       = VERSION
   spec.authors       = ["Masahiro TANAKA"]
   spec.email         = ["masa16.tanaka@gmail.com"]
-  spec.description   = %q{MPipe - IO.pipe emulation over MPI.}
-  spec.summary       = %q{MPipe - IO.pipe emulation over MPI}
+  spec.description   = %q{MPipe - IO.pipe emulation using MPI.}
+  spec.summary       = %q{MPipe - IO.pipe emulation using MPI}
   spec.homepage      = "https://github.com/masa16/mpipe"
   spec.license       = "MIT"
 
