@@ -254,7 +254,6 @@ mp_s_new(VALUE klass, VALUE vrank)
 }
 
 
-#if 0
 /*
  * Returns +false+.  Just for compatibility to IO.
  */
@@ -264,7 +263,6 @@ mp_false(VALUE self)
     MPipe(self);
     return Qfalse;
 }
-#endif
 
 /*
  * Returns +nil+.  Just for compatibility to IO.
@@ -321,6 +319,8 @@ mp_unimpl(int argc, VALUE *argv, VALUE self)
 #endif
 
 #define mp_close mp_nil
+#define mp_flush mp_nil
+#define mp_closed_p mp_false
 
 static VALUE
 mp_write(VALUE self, VALUE str)
@@ -625,7 +625,9 @@ void Init_mpipe()
     rb_define_method(cMPipe, "print", mp_write, 1);
     rb_define_method(cMPipe, "read", mp_read, -1);
     rb_define_method(cMPipe, "read_nonblock", mp_read_nonblock, -1);
-    rb_define_method(cMPipe, "close", mp_close, 1);
+    rb_define_method(cMPipe, "flush", mp_flush, 0);
+    rb_define_method(cMPipe, "close", mp_close, 0);
+    rb_define_method(cMPipe, "closed?", mp_closed_p, 0);
 
     rb_define_singleton_method(cMPipe, "select", mp_s_select, -1);
 
