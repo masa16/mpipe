@@ -9,7 +9,7 @@ Ruby's IO.pipe emulation over MPI
 Message Passing Interface (MPI) framework such as 
 [OpenMPI](https://www.open-mpi.org/), [MPICH](https://www.mpich.org/), etc.
 
-Commands:
+Required commands:
 * mpicc - Compiler for MPI programs.
 * mpirun - Command to run MPI program.
 
@@ -43,7 +43,7 @@ puts "size=%d rank=%d pid=%d" % [size,rank,Process.pid]
 if rank == 0
 
   (1..size-1).each do |r|
-    p MPipe.new(r).read
+    p MPipe.new(r).read(12)
   end
 
 else
