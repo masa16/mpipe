@@ -1,3 +1,4 @@
+//#include <sys/time.h>
 #include "ruby.h"
 #include "ruby/io.h"
 //#include "ruby/encoding.h"
@@ -255,6 +256,16 @@ mp_s_new(VALUE klass, VALUE vrank)
 
 
 /*
+ * Returns +rank+.
+ */
+static VALUE
+mp_rank(VALUE self)
+{
+    struct MPipe *ptr = MPipe(self);
+    return INT2NUM(ptr->rank);
+}
+
+/*
  * Returns +false+.  Just for compatibility to IO.
  */
 static VALUE
@@ -347,7 +358,7 @@ mp_write(VALUE self, VALUE str)
 
         pos += count;
     }
-    return self;
+    return INT2NUM(pos);
 }
 
 
@@ -533,61 +544,26 @@ mp_read_nonblock(int argc, VALUE *argv, VALUE self)
 }
 
 
+/*
+ * call-seq:
+ *   mpipe.test_recv    -> true or false
+ *
+ * calls MPI_Test
+ */
 static VALUE
-mp_s_select(int argc, VALUE *argv, VALUE mod)
+mp_test_recv(VALUE self)
 {
-    struct MPipe *ptr;
-    MPI_Request *ary_of_requests;
-    int *ary_of_indices;
-    MPI_Status *ary_of_statuses;
-    int incount, outcount;
-    int i, count, istat;
-    VALUE rd_ary, result_ary, item;
+    struct MPipe *ptr = MPipe(self);
 
-    if (argc==0) {
-        rb_raise(rb_eArgError, "no argument");
+    call_irecv(ptr);
+    if (ptr->recv_count == -1) { // requesting
+        call_test(ptr);
     }
-    incount = RARRAY_LEN(argv[0]);
-
-    result_ary = rb_ary_new();
-    rd_ary = rb_ary_new();
-    rb_ary_push(result_ary, rd_ary);
-    for (i=0; i < incount; i++) {
-        item = RARRAY_AREF(argv[0], i);
-        ptr = MPipe(item);
-        if (ptr->recv_count > 0) {
-            rb_ary_push(rd_ary, item);
-        }
+    if (ptr->recv_count > 0) {
+        return Qtrue;
+    } else {
+        return Qfalse;
     }
-    if (RARRAY_LEN(rd_ary) > 0) {
-        return result_ary;
-    }
-
-    ary_of_requests = ALLOCA_N(MPI_Request, incount);
-    ary_of_statuses = ALLOCA_N(MPI_Status, incount);
-    ary_of_indices  = ALLOCA_N(int, incount);
-
-    for (i=0; i < incount; i++) {
-        item = RARRAY_AREF(argv[0], i);
-        ptr = MPipe(item);
-        call_irecv(ptr);
-        ary_of_requests[i] = ptr->recv_request;
-    }
-
-    istat = MPI_Waitsome(incount, ary_of_requests,
-                         &outcount, ary_of_indices, ary_of_statuses);
-    if (istat != MPI_SUCCESS) {
-        rb_raise(rb_eStandardError,"MPI_Waitany failed with status=%d",istat);
-    }
-
-    for (i=0; i < outcount; i++) {
-        item = RARRAY_AREF(argv[0], ary_of_indices[i]);
-        MPI_Get_count(&ary_of_statuses[i], MPI_BYTE, &count);
-        ptr = MPipe(item);
-        ptr->recv_count = count;
-        rb_ary_push(rd_ary, item);
-    }
-    return result_ary;
 }
 
 
@@ -628,8 +604,8 @@ void Init_mpipe()
     rb_define_method(cMPipe, "flush", mp_flush, 0);
     rb_define_method(cMPipe, "close", mp_close, 0);
     rb_define_method(cMPipe, "closed?", mp_closed_p, 0);
-
-    rb_define_singleton_method(cMPipe, "select", mp_s_select, -1);
+    rb_define_method(cMPipe, "test_recv", mp_test_recv, 0);
+    rb_define_method(cMPipe, "rank", mp_rank, 0);
 
     sym_exception = ID2SYM(rb_intern("exception"));
     id_allocated_mpipe = rb_intern("allocated_mpipe");
