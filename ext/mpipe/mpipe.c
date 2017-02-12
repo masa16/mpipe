@@ -353,7 +353,7 @@ mp_write(VALUE self, VALUE str)
         istat = MPI_Send(ptr->send_buffer, count, MPI_CHAR, ptr->rank,
                          0, MPI_COMM_WORLD);
         if (istat != MPI_SUCCESS) {
-            rb_raise(rb_eStandardError,"MPI_send failed with status=%d\n",istat);
+            rb_raise(rb_eStandardError,"MPI_Send failed with status=%d\n",istat);
         }
 
         pos += count;
@@ -428,7 +428,7 @@ mp_read(int argc, VALUE *argv, VALUE self)
         istat = MPI_Recv(ptr->recv_buffer, mp_buffer_size, MPI_CHAR, ptr->rank,
                          0, MPI_COMM_WORLD, &status);
         if (istat != MPI_SUCCESS) {
-            rb_raise(rb_eStandardError,"MPI_recv failed with status=%d\n",istat);
+            rb_raise(rb_eStandardError,"MPI_Recv failed with status=%d\n",istat);
         }
         MPI_Get_count(&status, MPI_CHAR, &ptr->recv_count);
 
