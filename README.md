@@ -6,7 +6,7 @@ Ruby's IO.pipe emulation using MPI
 
 ## Requirement
 
-Message Passing Interface (MPI) framework such as 
+Message Passing Interface (MPI) framework such as
 [OpenMPI](https://www.open-mpi.org/), [MPICH](https://www.mpich.org/), etc.
 
 Required commands:
@@ -79,7 +79,11 @@ mp = MPipe.new(rank) -- returns pipe to MPI process with rank.
 mp.write(str) -- emulate IO#write.
 mp.read(length,outbuf=nil) -- emulate IO#read.
 mp.read_nonblock(maxlen,outbuf=nil,excepton:true) -- emulate IO#read_nonblock.
-MPipe.select(array_of_mpipe) -- emulate IO.select
+
+MPipe.select(rd_ary, [wt_ary, er_ary, timeout]) -- emulate IO.select
+MPipe.min_polling_intercal=(sec) -- initial polling interval in MPipe.select.
+MPipe.max_polling_intercal=(sec) -- final polling interval in MPipe.select.
+ (polling intervals = min, min*2, min*4, min*8, ..., max, max, ...)
 ```
 
 ## Contributing

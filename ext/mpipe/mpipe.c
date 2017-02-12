@@ -4,8 +4,6 @@
 //#include "ruby/encoding.h"
 #include "mpi.h"
 
-#define MPIPE_VERSION "0.2.0"
-
 static int mp_buffer_size = 4098;
 static int mp_initialized = 0;
 static int mp_finalized = 0;
@@ -580,7 +578,6 @@ void Init_mpipe()
     rb_define_module_function(cMPipe, "buffer_size", mp_mpi_buffer_size, 0);
     rb_define_module_function(cMPipe, "buffer_size=", mp_mpi_set_buffer_size, 1);
 
-    rb_define_const(cMPipe, "VERSION", rb_str_new2(MPIPE_VERSION));
     rb_define_const(cMPipe, "MPI_VERSION", INT2NUM(MPI_VERSION));
     rb_define_const(cMPipe, "MPI_SUBVERSION", INT2NUM(MPI_SUBVERSION));
     rb_define_const(cMPipe, "SUCCESS", INT2NUM(MPI_SUCCESS));

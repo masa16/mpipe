@@ -1,4 +1,5 @@
 require "mpipe.so"
+require "mpipe/version"
 
 class MPipe
 

@@ -1,20 +1,9 @@
-# coding: utf-8
-lib = File.expand_path('../lib', __FILE__)
-$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-
 # get version
-open("ext/mpipe/mpipe.c") do |f|
-  f.each_line do |l|
-    if /MPIPE_VERSION "([\d.]+)"/ =~ l
-      VERSION = $1
-      break
-    end
-  end
-end
+require_relative "lib/mpipe/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "mpipe"
-  spec.version       = VERSION
+  spec.version       = MPipe::VERSION
   spec.authors       = ["Masahiro TANAKA"]
   spec.email         = ["masa16.tanaka@gmail.com"]
   spec.description   = %q{MPipe - IO.pipe emulation using MPI.}
