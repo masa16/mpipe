@@ -29,5 +29,3 @@ else
   mp.write("end")
 
 end
-
-MPipe.finalize

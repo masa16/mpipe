@@ -70,7 +70,7 @@ size=4 rank=3 pid=10356
 
 ```
 MPipe.init(*args) -- calls MPI_Init()
-MPipe.finalize -- calls MPI_Finalize()
+ (MPI_Finalize() is automatically called at exit.)
 MPipe.abort(errorcode) -- calls MPI_Abort(MPI_COMM_WORLD, errorcode)
 MPipe::Comm.rank -- calls MPI_Comm_rank(), return the rank of this process.
 MPipe::Comm.size -- calls MPI_Comm_size(), return the size of this environment.

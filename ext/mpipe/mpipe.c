@@ -73,13 +73,6 @@ mp_mpi_init(int argc, VALUE *argv, VALUE klass)
 }
 
 static VALUE
-mp_mpi_finalize(VALUE klass)
-{
-    mp_finalize();
-    return Qnil;
-}
-
-static VALUE
 mp_mpi_abort(VALUE klass, VALUE rerror)
 {
     int ierror;
@@ -573,7 +566,6 @@ void Init_mpipe()
 
     // MPI
     rb_define_module_function(cMPipe, "init", mp_mpi_init, -1);
-    rb_define_module_function(cMPipe, "finalize", mp_mpi_finalize, 0);
     rb_define_module_function(cMPipe, "abort", mp_mpi_abort, 1);
     rb_define_module_function(cMPipe, "buffer_size", mp_mpi_buffer_size, 0);
     rb_define_module_function(cMPipe, "buffer_size=", mp_mpi_set_buffer_size, 1);
